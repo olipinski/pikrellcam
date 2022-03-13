@@ -244,7 +244,7 @@ then
 		fi
 	done
 
-	for PACKAGE in gpac nginx-mainline bc lame \
+	for PACKAGE in gpac nginx bc lame \
 		sshpass libmpack imagemagick alsa-lib openssl
 	do
 		if ! apk -e info $PACAKGE | grep -q $PACKAGE
@@ -256,11 +256,9 @@ then
 	if [ "$PACKAGE_LIST" != "" ]
 	then
 		echo "Installing packages: $PACKAGE_LIST"
-		echo "Running: pacman"
-		$ASROOT pacman -Sy --noconfirm
-		$ASROOT pacman -S pacman --needed --noconfirm
-		$ASROOT pacman-db-upgrade
-		$ASROOT pacman -S --noconfirm --needed $PACKAGE_LIST
+		echo "Running: apk"
+		$ASROOT apk -U upgrade
+		$ASROOT apk add $PACKAGE_LIST
 	else
 		echo "No packages need to be installed."
 	fi
