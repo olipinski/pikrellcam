@@ -29,20 +29,28 @@ if [ -f "/etc/arch-release" ]; then
 	DISTRO="ARCH"
 	WWW_USER=http
 	WWW_GROUP=http
+	# The sudo/doas/run as root program that is used
+	ASROOT=doas
+elif [ -f "/etc/alpine-release"  ]; then
+    DISTRO="ALPINE"
+	WWW_USER=www
+	WWW_GROUP=www
+	ASROOT=sudo
 else
 	DISTRO="DEBIAN"
 	WWW_USER=www-data
 	WWW_GROUP=www-data
+	ASROOT=sudo
 fi
 
-sudo chown .$WWW_GROUP $PWD/www
-sudo chmod 775 $PWD/www
+$ASROOT chown .$WWW_GROUP $PWD/www
+$ASROOT chmod 775 $PWD/www
 
 if [ ! -d media ]
 then
 	mkdir media media/archive media/videos media/thumbs media/stills
-	sudo chown .$WWW_GROUP media media/archive media/videos media/thumbs media/stills
-	sudo chmod 775 media media/archive media/videos media/thumbs media/stills
+	$ASROOT chown .$WWW_GROUP media media/archive media/videos media/thumbs media/stills
+	$ASROOT chmod 775 media media/archive media/videos media/thumbs media/stills
 fi
 
 if [ ! -h www/media ]
@@ -172,8 +180,8 @@ then
 	then
 		echo "Installing packages: $PACKAGE_LIST"
 		echo "Running: apt-get update"
-		sudo apt-get update
-		sudo apt-get install -y --no-install-recommends $PACKAGE_LIST
+		$ASROOT apt-get update
+		$ASROOT apt-get install -y --no-install-recommends $PACKAGE_LIST
 	else
 		echo "No packages need to be installed."
 	fi
@@ -184,7 +192,7 @@ then
 		if ! dpkg -s realpath 2>/dev/null | grep Status | grep -q installed
 		then
 			echo "Installing package: realpath"
-			sudo apt-get install -y --no-install-recommends realpath
+			$ASROOT apt-get install -y --no-install-recommends realpath
 		fi
 	fi
 	
@@ -202,7 +210,7 @@ then
 		fi
 	done
 	
-	for PACKAGE in sudo gpac nginx-mainline bc lame \
+	for PACKAGE in $ASROOT gpac nginx-mainline bc lame \
 		sshpass libmpack imagemagick alsa-lib openssl
 	do
 		if ! pacman -Q 2>/dev/null | grep -q $PACKAGE
@@ -215,28 +223,61 @@ then
 	then
 		echo "Installing packages: $PACKAGE_LIST"
 		echo "Running: pacman"
-		sudo pacman -Sy --noconfirm
-		sudo pacman -S pacman --needed --noconfirm
-		sudo pacman-db-upgrade
-		sudo pacman -S --noconfirm --needed $PACKAGE_LIST
+		$ASROOT pacman -Sy --noconfirm
+		$ASROOT pacman -S pacman --needed --noconfirm
+		$ASROOT pacman-db-upgrade
+		$ASROOT pacman -S --noconfirm --needed $PACKAGE_LIST
 	else
 		echo "No packages need to be installed."
 	fi
+elif [ "$DISTRO" == "ALPINE" ];
+then
+  	PACKAGE_LIST=""
+	AV_PACKAGES="ffmpeg"
+	PHP_PACKAGES="php php-fpm"
 
+	for PACKAGE in $PHP_PACKAGES $AV_PACKAGES
+	do
+		if ! apk -e info $PACAKGE | grep -q $PACKAGE
+		then
+			PACKAGE_LIST="$PACKAGE_LIST $PACKAGE"
+		fi
+	done
+
+	for PACKAGE in gpac nginx-mainline bc lame \
+		sshpass libmpack imagemagick alsa-lib openssl
+	do
+		if ! apk -e info $PACAKGE | grep -q $PACKAGE
+		then
+			PACKAGE_LIST="$PACKAGE_LIST $PACKAGE"
+		fi
+	done
+
+	if [ "$PACKAGE_LIST" != "" ]
+	then
+		echo "Installing packages: $PACKAGE_LIST"
+		echo "Running: pacman"
+		$ASROOT pacman -Sy --noconfirm
+		$ASROOT pacman -S pacman --needed --noconfirm
+		$ASROOT pacman-db-upgrade
+		$ASROOT pacman -S --noconfirm --needed $PACKAGE_LIST
+	else
+		echo "No packages need to be installed."
+	fi
 fi
 
 if [ ! -h /usr/local/bin/pikrellcam ]
 then
     echo "Making /usr/local/bin/pikrellcam link."
-	sudo rm -f /usr/local/bin/pikrellcam
-    sudo ln -s $PWD/pikrellcam /usr/local/bin/pikrellcam
+	$ASROOT rm -f /usr/local/bin/pikrellcam
+    $ASROOT ln -s $PWD/pikrellcam /usr/local/bin/pikrellcam
 else
     CURRENT_BIN=`realpath /usr/local/bin/pikrellcam`
     if [ "$CURRENT_BIN" != "$PWD/pikrellcam" ]
     then
     echo "Replacing /usr/local/bin/pikrellcam link"
-        sudo rm /usr/local/bin/pikrellcam
-        sudo ln -s $PWD/pikrellcam /usr/local/bin/pikrellcam
+        $ASROOT rm /usr/local/bin/pikrellcam
+        $ASROOT ln -s $PWD/pikrellcam /usr/local/bin/pikrellcam
     fi
 fi
 
@@ -291,14 +332,14 @@ then
 	    then
 			if grep -q pikrellcam /etc/rc.local
 			then
-				sudo sed -i "/pikrellcam/d" /etc/rc.local
+				$ASROOT sed -i "/pikrellcam/d" /etc/rc.local
 			fi
 			echo "Adding a pikrellcam autostart command to /etc/rc.local:"
-		sudo sed -i "s|^exit.*|$CMD\n&|" /etc/rc.local
+		$ASROOT sed -i "s|^exit.*|$CMD\n&|" /etc/rc.local
 			if ! [ -x /etc/rc.local ]
 			then
 				echo "Added execute permission to /etc/rc.local"
-				sudo chmod a+x /etc/rc.local
+				$ASROOT chmod a+x /etc/rc.local
 			fi
 			grep pikrellcam /etc/rc.local
 	    fi
@@ -306,7 +347,7 @@ then
 		if grep -q pikrellcam /etc/rc.local
 		then
 			echo "Removing pikrellcam autostart line from /etc/rc.local."
-			sudo sed -i "/pikrellcam/d" /etc/rc.local
+			$ASROOT sed -i "/pikrellcam/d" /etc/rc.local
 		fi
 	fi
 elif [ "$DISTRO" == "ARCH" ]
@@ -316,14 +357,14 @@ then
 		cp etc/pikrellcam.service /tmp/pikrellcam.service.tmp
 		sed -i "s/USER/$USER/" /tmp/pikrellcam.service.tmp
 		sed -i "s|PWD|$PWD|" /tmp/pikrellcam.service.tmp
-		sudo cp /tmp/pikrellcam.service.tmp /etc/systemd/system/pikrellcam.service
+		$ASROOT cp /tmp/pikrellcam.service.tmp /etc/systemd/system/pikrellcam.service
 	fi
 		
 	if [ "$AUTOSTART" == "yes" ]
 	then
-		sudo systemctl enable pikrellcam
+		$ASROOT systemctl enable pikrellcam
 	else
-		sudo systemctl disable pikrellcam
+		$ASROOT systemctl disable pikrellcam
 	fi
 fi
 
@@ -342,10 +383,9 @@ then
 		sed -i "s/#USER/$USER/g" /tmp/pikrellcam.sudoers.tmp
 	fi
 	sed -i "s/USER/$USER/g" /tmp/pikrellcam.sudoers.tmp
-	sudo chown root.root /tmp/pikrellcam.sudoers.tmp
-	sudo chmod 440 /tmp/pikrellcam.sudoers.tmp
-	sudo mv /tmp/pikrellcam.sudoers.tmp /etc/sudoers.d/pikrellcam
-#	sudo cat /etc/sudoers.d/pikrellcam
+	$ASROOT chown root.root /tmp/pikrellcam.sudoers.tmp
+	$ASROOT chmod 440 /tmp/pikrellcam.sudoers.tmp
+	$ASROOT mv /tmp/pikrellcam.sudoers.tmp /etc/sudoers.d/pikrellcam
 fi
 
 # =============== Setup Password  ===============
@@ -353,7 +393,7 @@ fi
 OLD_SESSION_PATH=www/session
 if [ -d $OLD_SESSION_PATH ]
 then
-	sudo rm -rf $OLD_SESSION_PATH
+	$ASROOT rm -rf $OLD_SESSION_PATH
 fi
 
 OLD_PASSWORD=www/password.php
@@ -365,7 +405,7 @@ fi
 if [ "$PASSWORD" != "" ]
 then
 	printf "$USER:$(openssl passwd -6 $PASSWORD)\n" > $HTPASSWD
-	sudo chown $USER.$WWW_GROUP $HTPASSWD
+	$ASROOT chown $USER.$WWW_GROUP $HTPASSWD
 fi
 
 
@@ -377,7 +417,7 @@ fi
 if ! grep -q "access_log off" /etc/nginx/nginx.conf
 then
 	echo "Turning off nginx access_log."
-	sudo sed -i  '/access_log/c\	access_log off;' /etc/nginx/nginx.conf
+	$ASROOT sed -i  '/access_log/c\	access_log off;' /etc/nginx/nginx.conf
 fi
 
 if [ "$DISTRO" == "DEBIAN" ]
@@ -391,11 +431,11 @@ then
 elif [ "$DISTRO" == "ARCH" ]
 then
 	if [ ! -d "/etc/nginx/sites-enabled" ]; then
-		sudo mkdir /etc/nginx/sites-available
-		sudo mkdir /etc/nginx/sites-enabled
+		$ASROOT mkdir /etc/nginx/sites-available
+		$ASROOT mkdir /etc/nginx/sites-enabled
 		if ! grep -q "sites-enabled" /etc/nginx/nginx.conf 2>/dev/null
 		then
-			sudo sed -i '/include.*mime.types;/s|$|\n    include       sites-enabled/*;|' /etc/nginx/nginx.conf
+			$ASROOT sed -i '/include.*mime.types;/s|$|\n    include       sites-enabled/*;|' /etc/nginx/nginx.conf
 		fi
 	fi
 	NGINX_SITE=etc/nginx-arch-site-default
@@ -404,8 +444,8 @@ fi
 echo "Installing /etc/nginx/sites-available/pikrellcam"
 echo "    nginx web server port: $PORT"
 echo "    nginx web server root: $PWD/www"
-sudo cp $NGINX_SITE /etc/nginx/sites-available/pikrellcam
-sudo sed -i "s|PIKRELLCAM_WWW|$PWD/www|; \
+$ASROOT cp $NGINX_SITE /etc/nginx/sites-available/pikrellcam
+$ASROOT sed -i "s|PIKRELLCAM_WWW|$PWD/www|; \
 			s/PORT/$PORT/" \
 			/etc/nginx/sites-available/pikrellcam
 
@@ -413,15 +453,15 @@ if [ "$DISTRO" == "DEBIAN" ]
 	then
 	if ((DEB_VERSION >= BUSTER))
 	then
-		sudo sed -i "s/php5/php\/php7.3/" /etc/nginx/sites-available/pikrellcam
+		$ASROOT sed -i "s/php5/php\/php7.3/" /etc/nginx/sites-available/pikrellcam
 	elif ((DEB_VERSION >= STRETCH))
 	then
-		sudo sed -i "s/php5/php\/php7.0/" /etc/nginx/sites-available/pikrellcam
+		$ASROOT sed -i "s/php5/php\/php7.0/" /etc/nginx/sites-available/pikrellcam
 	fi
 elif [ "$DISTRO" == "ARCH" ]
 then
-	sudo sed -i "s/php5/php\/php8/" /etc/nginx/sites-available/pikrellcam
-	sudo systemctl enable --now php-fpm
+	$ASROOT sed -i "s/php5/php\/php8/" /etc/nginx/sites-available/pikrellcam
+	$ASROOT systemctl enable --now php-fpm
 fi
 
 NGINX_SITE=/etc/nginx/sites-available/pikrellcam
@@ -433,8 +473,8 @@ then
 	if [ "$CURRENT_SITE" != "$NGINX_SITE" ]
 	then
 		echo "Changing $NGINX_LINK link to pikrellcam"
-		sudo rm -f $NGINX_LINK
-		sudo ln -s $NGINX_SITE $NGINX_LINK
+		$ASROOT rm -f $NGINX_LINK
+		$ASROOT ln -s $NGINX_SITE $NGINX_LINK
 	fi
 else
 	NGINX_LINK=/etc/nginx/sites-enabled/pikrellcam
@@ -443,22 +483,22 @@ fi
 if [ ! -h $NGINX_LINK 2>/dev/null ]
 then
 	echo "Adding $NGINX_LINK link to sites-available/pikrellcam."
-	sudo ln -s $NGINX_SITE $NGINX_LINK
+	$ASROOT ln -s $NGINX_SITE $NGINX_LINK
 fi
 
 if [ ! -f $HTPASSWD ]
 then
 	echo "A password for the web page is not set."
-	sudo sed -i 's/auth_basic/\# auth_basic/' $NGINX_SITE
+	$ASROOT sed -i 's/auth_basic/\# auth_basic/' $NGINX_SITE
 fi
 
 if [ "$DISTRO" == "DEBIAN" ]
 then
-	sudo service nginx restart
+	$ASROOT service nginx restart
 elif [ "$DISTRO" == "ARCH" ]
 then
-	sudo systemctl enable nginx
-	sudo systemctl restart nginx
+	$ASROOT systemctl enable nginx
+	$ASROOT systemctl restart nginx
 fi
 
 
@@ -471,8 +511,8 @@ then
 	rm -f $fifo
 	mkfifo $fifo
 fi
-sudo chown $USER.$WWW_GROUP $fifo
-sudo chmod 664 $fifo
+$ASROOT chown $USER.$WWW_GROUP $fifo
+$ASROOT chmod 664 $fifo
 
 
 
