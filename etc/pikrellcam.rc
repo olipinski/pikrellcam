@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+
+description="The PiKrellCam service"
+
+depend() {
+    need localmount
+    need net
+}
+
+command="PWD"
+command_user="USER"
+command_background=true
+pidfile="/run/${RC_SVCNAME}.pid"
