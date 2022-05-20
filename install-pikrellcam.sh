@@ -262,7 +262,7 @@ then
 	else
 		echo "No packages need to be installed."
 	fi
-	$ASROOT chown -R www:www /var/lib/nginx
+	$ASROOT chown -R $WWW_USER:$WWW_GROUP /var/lib/nginx
 fi
 
 if [ ! -h /usr/local/bin/pikrellcam ]
