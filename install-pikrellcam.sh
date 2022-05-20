@@ -30,12 +30,12 @@ if [ -f "/etc/arch-release" ]; then
 	WWW_USER=http
 	WWW_GROUP=http
 	# The sudo/doas/run as root program that is used
-	ASROOT=doas
+	ASROOT=sudo
 elif [ -f "/etc/alpine-release"  ]; then
-    DISTRO="ALPINE"
+    	DISTRO="ALPINE"
 	WWW_USER=www
 	WWW_GROUP=www
-	ASROOT=sudo
+	ASROOT=doas
 else
 	DISTRO="DEBIAN"
 	WWW_USER=www-data
