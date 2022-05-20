@@ -33,8 +33,8 @@ if [ -f "/etc/arch-release" ]; then
 	ASROOT=sudo
 elif [ -f "/etc/alpine-release"  ]; then
     	DISTRO="ALPINE"
-	WWW_USER=www
-	WWW_GROUP=www
+	WWW_USER=nginx
+	WWW_GROUP=nginx
 	ASROOT=doas
 else
 	DISTRO="DEBIAN"
@@ -43,13 +43,13 @@ else
 	ASROOT=sudo
 fi
 
-$ASROOT chown .$WWW_GROUP "$PWD"/www
+$ASROOT chown $WWW_USER:$WWW_GROUP "$PWD"/www
 $ASROOT chmod 775 "$PWD"/www
 
 if [ ! -d media ]
 then
 	mkdir media media/archive media/videos media/thumbs media/stills
-	$ASROOT chown .$WWW_GROUP media media/archive media/videos media/thumbs media/stills
+	$ASROOT chown $WWW_USER:$WWW_GROUP media media/archive media/videos media/thumbs media/stills
 	$ASROOT chmod 775 media media/archive media/videos media/thumbs media/stills
 fi
 
@@ -262,13 +262,7 @@ then
 	else
 		echo "No packages need to be installed."
 	fi
-
-	echo "Additional Alpine nginx setup"
-	echo "Creating user, directory and chown-ing"
-	$ASROOT adduser -D -g 'www' www
-	$ASROOT mkdir /www
 	$ASROOT chown -R www:www /var/lib/nginx
-	$ASROOT chown -R www:www /www
 fi
 
 if [ ! -h /usr/local/bin/pikrellcam ]
