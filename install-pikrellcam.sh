@@ -244,7 +244,7 @@ then
 		fi
 	done
 
-	for PACKAGE in gpac nginx bc lame \
+	for PACKAGE in nginx bc lame \
 		sshpass libmpack imagemagick alsa-lib openssl
 	do
 		if ! apk -e info "$PACAKGE" | grep -q $PACKAGE
