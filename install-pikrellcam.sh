@@ -234,7 +234,7 @@ elif [ "$DISTRO" == "ALPINE" ];
 then
   	PACKAGE_LIST=""
 	AV_PACKAGES="ffmpeg"
-	PHP_PACKAGES="php php-fpm"
+	PHP_PACKAGES="php7 php7-fpm"
 
 	for PACKAGE in $PHP_PACKAGES $AV_PACKAGES
 	do
@@ -262,6 +262,13 @@ then
 	else
 		echo "No packages need to be installed."
 	fi
+
+	echo "Additional Alpine nginx setup"
+	echo "Creating user, directory and chown-ing"
+	$ASROOT adduser -D -g 'www' www
+	$ASROOT mkdir /www
+	$ASROOT chown -R www:www /var/lib/nginx
+	$ASROOT chown -R www:www /www
 fi
 
 if [ ! -h /usr/local/bin/pikrellcam ]
@@ -333,7 +340,7 @@ then
 				$ASROOT sed -i "/pikrellcam/d" /etc/rc.local
 			fi
 			echo "Adding a pikrellcam autostart command to /etc/rc.local:"
-		$ASROOT sed -i "s|^exit.*|$CMD\n&|" /etc/rc.local
+			$ASROOT sed -i "s|^exit.*|$CMD\n&|" /etc/rc.local
 			if ! [ -x /etc/rc.local ]
 			then
 				echo "Added execute permission to /etc/rc.local"
@@ -364,28 +371,47 @@ then
 	else
 		$ASROOT systemctl disable pikrellcam
 	fi
+elif [ "$DISTRO" == "ALPINE" ]
+then
+	if [ ! -f /etc/rc.local ]
+	then
+		cp etc/pikrellcam.rc /tmp/pikrellcam.rc.tmp
+		sed -i "s/USER/$USER/" /tmp/pikrellcam.rc.tmp
+		sed -i "s|PWD|$PWD|" /tmp/pikrellcam.rc.tmp
+		$ASROOT cp /tmp/pikrellcam.rc.tmp /etc/init.d/pikrellcam
+	fi
+
+	if [ "$AUTOSTART" == "yes" ]
+	then
+		$ASROOT rc-update add pikrellcam default
+	fi
 fi
 
 
 # ===== sudoers permission for $WWW_USER to run pikrellcam as pi ======
 #
-CMD=$PWD/pikrellcam
-if ! grep -q "$CMD" /etc/sudoers.d/pikrellcam 2>/dev/null
+if [ "$DISTRO" == "DEBIAN" || "$DISTRO" == "ARCH" ]
 then
-	echo "Adding to /etc/sudoers.d: $WWW_USER permission to run pikrellcam as user pi:"
-	cp etc/pikrellcam.sudoers /tmp/pikrellcam.sudoers.tmp
-	sed -i "s|pikrellcam|$CMD|g" /tmp/pikrellcam.sudoers.tmp
-	sed -i "s/NGINX_USER/$WWW_USER/g" /tmp/pikrellcam.sudoers.tmp
-	if [ "$DISTRO" == "ARCH" ]
+	CMD=$PWD/pikrellcam
+	if ! grep -q "$CMD" /etc/sudoers.d/pikrellcam 2>/dev/null
 	then
-		sed -i "s/#USER/$USER/g" /tmp/pikrellcam.sudoers.tmp
+		echo "Adding to /etc/sudoers.d: $WWW_USER permission to run pikrellcam as user pi:"
+		cp etc/pikrellcam.sudoers /tmp/pikrellcam.sudoers.tmp
+		sed -i "s|pikrellcam|$CMD|g" /tmp/pikrellcam.sudoers.tmp
+		sed -i "s/NGINX_USER/$WWW_USER/g" /tmp/pikrellcam.sudoers.tmp
+		if [ "$DISTRO" == "ARCH" ]
+		then
+			sed -i "s/#USER/$USER/g" /tmp/pikrellcam.sudoers.tmp
+		fi
+		sed -i "s/USER/$USER/g" /tmp/pikrellcam.sudoers.tmp
+		$ASROOT chown root.root /tmp/pikrellcam.sudoers.tmp
+		$ASROOT chmod 440 /tmp/pikrellcam.sudoers.tmp
+		$ASROOT mv /tmp/pikrellcam.sudoers.tmp /etc/sudoers.d/pikrellcam
 	fi
-	sed -i "s/USER/$USER/g" /tmp/pikrellcam.sudoers.tmp
-	$ASROOT chown root.root /tmp/pikrellcam.sudoers.tmp
-	$ASROOT chmod 440 /tmp/pikrellcam.sudoers.tmp
-	$ASROOT mv /tmp/pikrellcam.sudoers.tmp /etc/sudoers.d/pikrellcam
+elif [ "$DISTRO" == "ALPINE" ]
+then
+	$ASROOT echo "permit nopass :$WWW_USER as $USER" >> /etc/doas.conf
 fi
-
 # =============== Setup Password  ===============
 #
 OLD_SESSION_PATH=www/session
@@ -437,32 +463,48 @@ then
 		fi
 	fi
 	NGINX_SITE=etc/nginx-arch-site-default
+elif [ "$DISTRO" == "ALPINE" ]
+then
+	NGINX_SITE=etc/nginx-alpine-site-default
 fi
 
-echo "Installing /etc/nginx/sites-available/pikrellcam"
+if [ "$DISTRO" == "DEBIAN" || "$DISTRO" == "ARCH" ]
+then
+	NGINX_VIRT_DIR="/etc/nginx/sites-available"
+elif [ "$DISTRO" == "ALPINE" ]
+then
+	NGINX_VIRT_DIR="/etc/nginx/http.d"
+fi
+
+echo "Installing $NGINX_VIRT_DIR/pikrellcam"
 echo "    nginx web server port: $PORT"
 echo "    nginx web server root: $PWD/www"
-$ASROOT cp $NGINX_SITE /etc/nginx/sites-available/pikrellcam
+$ASROOT cp $NGINX_SITE $NGINX_VIRT_DIR/pikrellcam
 $ASROOT sed -i "s|PIKRELLCAM_WWW|$PWD/www|; \
 			s/PORT/$PORT/" \
-			/etc/nginx/sites-available/pikrellcam
+			$NGINX_VIRT_DIR/pikrellcam
 
 if [ "$DISTRO" == "DEBIAN" ]
 	then
 	if ((DEB_VERSION >= BUSTER))
 	then
-		$ASROOT sed -i "s/php5/php\/php7.3/" /etc/nginx/sites-available/pikrellcam
+		$ASROOT sed -i "s/php5/php\/php7.3/" $NGINX_VIRT_DIR/pikrellcam
 	elif ((DEB_VERSION >= STRETCH))
 	then
-		$ASROOT sed -i "s/php5/php\/php7.0/" /etc/nginx/sites-available/pikrellcam
+		$ASROOT sed -i "s/php5/php\/php7.0/" $NGINX_VIRT_DIR/pikrellcam
 	fi
 elif [ "$DISTRO" == "ARCH" ]
 then
-	$ASROOT sed -i "s/php5/php\/php8/" /etc/nginx/sites-available/pikrellcam
+	$ASROOT sed -i "s/php5/php\/php8/" $NGINX_VIRT_DIR/pikrellcam
 	$ASROOT systemctl enable --now php-fpm
+elif [ "$DISTRO" == "ALPINE" ]
+then
+	$ASROOT sed -i "s/php5/php\/php7/" $NGINX_VIRT_DIR/pikrellcam
+	$ASROOT rc-update add php-fpm7 default
+	$ASROOT rc-service php-fpm7 start
 fi
 
-NGINX_SITE=/etc/nginx/sites-available/pikrellcam
+NGINX_SITE=$NGINX_VIRT_DIR/pikrellcam
 
 if [ "$PORT" == "80" ]
 then
@@ -478,7 +520,7 @@ else
 	NGINX_LINK=/etc/nginx/sites-enabled/pikrellcam
 fi
 
-if [ ! -h $NGINX_LINK 2>/dev/null ]
+if [ ! -h $NGINX_LINK 2 >/dev/null ]
 then
 	echo "Adding $NGINX_LINK link to sites-available/pikrellcam."
 	$ASROOT ln -s $NGINX_SITE $NGINX_LINK
@@ -497,8 +539,11 @@ elif [ "$DISTRO" == "ARCH" ]
 then
 	$ASROOT systemctl enable nginx
 	$ASROOT systemctl restart nginx
+elif [ "$DISTRO" == "ALPINE" ]
+then
+	$ASROOT rc-update add nginx default
+	$ASROOT rc-service nginx start
 fi
-
 
 # =============== Setup FIFO  ===============
 #
