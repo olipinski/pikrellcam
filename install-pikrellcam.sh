@@ -1,8 +1,8 @@
 #!/bin/bash
 
-PGM=`basename $0`
+PGM=$(basename "$0")
 
-if [ `id -u` == 0 ]
+if [ "$(id -u)" == 0 ]
 then
     echo -e "$PGM should not be run as root.\n"
     exit 1
@@ -15,12 +15,12 @@ bad_install()
 	exit 1
 	}
 
-if [ ! -x $PWD/pikrellcam ]
+if [ ! -x "$PWD"/pikrellcam ]
 then
 	bad_install "program pikrellcam"
 fi
 
-if [ ! -d $PWD/www ]
+if [ ! -d "$PWD"/www ]
 then
 	bad_install "directory www"
 fi
@@ -43,8 +43,8 @@ else
 	ASROOT=sudo
 fi
 
-$ASROOT chown .$WWW_GROUP $PWD/www
-$ASROOT chmod 775 $PWD/www
+$ASROOT chown .$WWW_GROUP "$PWD"/www
+$ASROOT chmod 775 "$PWD"/www
 
 if [ ! -d media ]
 then
@@ -55,12 +55,12 @@ fi
 
 if [ ! -h www/media ]
 then
-	ln -s $PWD/media www/media
+	ln -s "$PWD"/media www/media
 fi
 
 if [ ! -h www/archive ]
 then
-	ln -s $PWD/media/archive www/archive
+	ln -s "$PWD"/media/archive www/archive
 fi
 
 echo ""
@@ -70,7 +70,7 @@ echo "port 80, you should enter an alternate port for PiKrellCam."
 echo "Otherwise you can use the default port 80 or an alternate as you wish."
 echo "The port number will be set in: /etc/nginx.sites-available/pikrellcam."
 echo -n "Enter web server port: "
-read resp
+read -r resp
 if [ "$resp" == "" ]
 then
 	PORT=80
@@ -83,7 +83,7 @@ echo "For auto starting at boot, a PiKrellCam start command must be in rc.local 
 echo "If you don't start at boot, PiKrellCam can always be started and stopped"
 echo "from the web page."
 echo -n "Do you want PiKrellCam to be auto started at boot? (yes/no): "
-read resp
+read -r resp
 if [ "$resp" == "y" ] || [ "$resp" == "yes" ]
 then
 	AUTOSTART=yes
@@ -100,7 +100,7 @@ if [ -f $HTPASSWD ]
 then
 	echo "A web password is already set."
 	echo -n "Do you want to change the password (yes/no)? "
-	read resp
+	read -r resp
 	if [ "$resp" == "y" ] || [ "$resp" == "yes" ]
 	then
 		SET_PASSWORD=yes
@@ -117,7 +117,7 @@ then
 	echo "Enter a password for a web page login for user: $USER"
 	echo "Enter a blank entry if you do not want the password login."
 	echo -n "Enter password: "
-	read PASSWORD
+	read -r PASSWORD
 fi
 
 
@@ -137,7 +137,7 @@ then
 	BUSTER=10
 
 
-	V=`cat /etc/debian_version`
+	V=$(cat /etc/debian_version)
 	#DEB_VERSION="${V:0:1}"
 	# Strip all chars after decimal point
 	DEB_VERSION="${V%.*}"
@@ -160,7 +160,7 @@ then
 
 	for PACKAGE in $PHP_PACKAGES $AV_PACKAGES
 	do
-		if ! dpkg -s $PACKAGE 2>/dev/null | grep Status | grep -q installed
+		if ! dpkg -s "$PACKAGE" 2>/dev/null | grep Status | grep -q installed
 		then
 			PACKAGE_LIST="$PACKAGE_LIST $PACKAGE"
 		fi
@@ -181,7 +181,7 @@ then
 		echo "Installing packages: $PACKAGE_LIST"
 		echo "Running: apt-get update"
 		$ASROOT apt-get update
-		$ASROOT apt-get install -y --no-install-recommends $PACKAGE_LIST
+		$ASROOT apt-get install -y --no-install-recommends "$PACKAGE_LIST"
 	else
 		echo "No packages need to be installed."
 	fi
@@ -204,7 +204,7 @@ then
 	
 	for PACKAGE in $PHP_PACKAGES $AV_PACKAGES
 	do
-		if ! pacman -Q 2>/dev/null | grep -q $PACKAGE
+		if ! pacman -Q 2>/dev/null | grep -q "$PACKAGE"
 		then
 			PACKAGE_LIST="$PACKAGE_LIST $PACKAGE"
 		fi
@@ -226,7 +226,7 @@ then
 		$ASROOT pacman -Sy --noconfirm
 		$ASROOT pacman -S pacman --needed --noconfirm
 		$ASROOT pacman-db-upgrade
-		$ASROOT pacman -S --noconfirm --needed $PACKAGE_LIST
+		$ASROOT pacman -S --noconfirm --needed "$PACKAGE_LIST"
 	else
 		echo "No packages need to be installed."
 	fi
@@ -238,7 +238,7 @@ then
 
 	for PACKAGE in $PHP_PACKAGES $AV_PACKAGES
 	do
-		if ! apk -e info $PACAKGE | grep -q $PACKAGE
+		if ! apk -e info "$PACAKGE" | grep -q "$PACKAGE"
 		then
 			PACKAGE_LIST="$PACKAGE_LIST $PACKAGE"
 		fi
@@ -247,7 +247,7 @@ then
 	for PACKAGE in gpac nginx bc lame \
 		sshpass libmpack imagemagick alsa-lib openssl
 	do
-		if ! apk -e info $PACAKGE | grep -q $PACKAGE
+		if ! apk -e info "$PACAKGE" | grep -q $PACKAGE
 		then
 			PACKAGE_LIST="$PACKAGE_LIST $PACKAGE"
 		fi
@@ -258,7 +258,7 @@ then
 		echo "Installing packages: $PACKAGE_LIST"
 		echo "Running: apk"
 		$ASROOT apk -U upgrade
-		$ASROOT apk add $PACKAGE_LIST
+		$ASROOT apk add "$PACKAGE_LIST"
 	else
 		echo "No packages need to be installed."
 	fi
@@ -275,14 +275,14 @@ if [ ! -h /usr/local/bin/pikrellcam ]
 then
     echo "Making /usr/local/bin/pikrellcam link."
 	$ASROOT rm -f /usr/local/bin/pikrellcam
-    $ASROOT ln -s $PWD/pikrellcam /usr/local/bin/pikrellcam
+    $ASROOT ln -s "$PWD"/pikrellcam /usr/local/bin/pikrellcam
 else
-    CURRENT_BIN=`realpath /usr/local/bin/pikrellcam`
+    CURRENT_BIN=$(realpath /usr/local/bin/pikrellcam)
     if [ "$CURRENT_BIN" != "$PWD/pikrellcam" ]
     then
     echo "Replacing /usr/local/bin/pikrellcam link"
         $ASROOT rm /usr/local/bin/pikrellcam
-        $ASROOT ln -s $PWD/pikrellcam /usr/local/bin/pikrellcam
+        $ASROOT ln -s "$PWD"/pikrellcam /usr/local/bin/pikrellcam
     fi
 fi
 
@@ -303,26 +303,26 @@ fi
 
 if [ "$DISTRO" == "ARCH" ]
 then
-	setfacl -m u:http:rwx $HOME
+	setfacl -m u:http:rwx "$HOME"
 fi
 
 # =============== set install_dir in pikrellcam.conf ===============
 #
 PIKRELLCAM_CONF=$HOME/.pikrellcam/pikrellcam.conf
-if [ ! -f $PIKRELLCAM_CONF ]
+if [ ! -f "$PIKRELLCAM_CONF" ]
 then
 	echo "Unexpected failure to create config file $HOME/.pikrellcam/pikrellcam.conf"
 	exit 1
 fi
 
-if ! grep -q "install_dir $PWD" $PIKRELLCAM_CONF
+if ! grep -q "install_dir $PWD" "$PIKRELLCAM_CONF"
 then
 	echo "Setting install_dir config line in $PIKRELLCAM_CONF:"
 	echo "install_dir $PWD"
-	sed -i  "/install_dir/c\install_dir $PWD" $PIKRELLCAM_CONF
+	sed -i  "/install_dir/c\install_dir $PWD" "$PIKRELLCAM_CONF"
 fi
 
-sed -i  "s/NGINX_GROUP/$WWW_GROUP/" $PIKRELLCAM_CONF
+sed -i  "s/NGINX_GROUP/$WWW_GROUP/" "$PIKRELLCAM_CONF"
 
 # =============== pikrellcam autostart to rc.local  ===============
 #
@@ -333,7 +333,7 @@ if [ "$DISTRO" == "DEBIAN" ]
 then
 	if [ "$AUTOSTART" == "yes" ]
 	then
-	    if ! fgrep -q "$CMD" /etc/rc.local
+	    if ! grep -f -q "$CMD" /etc/rc.local
 	    then
 			if grep -q pikrellcam /etc/rc.local
 			then
@@ -390,7 +390,7 @@ fi
 
 # ===== sudoers permission for $WWW_USER to run pikrellcam as pi ======
 #
-if [ "$DISTRO" == "DEBIAN" || "$DISTRO" == "ARCH" ]
+if [ "$DISTRO" == "DEBIAN" ] || [ "$DISTRO" == "ARCH" ]
 then
 	CMD=$PWD/pikrellcam
 	if ! grep -q "$CMD" /etc/sudoers.d/pikrellcam 2>/dev/null
@@ -429,7 +429,7 @@ fi
 if [ "$PASSWORD" != "" ]
 then
 	printf "$USER:$(openssl passwd -6 $PASSWORD)\n" > $HTPASSWD
-	$ASROOT chown $USER.$WWW_GROUP $HTPASSWD
+	$ASROOT chown "$USER"."$WWW_GROUP" $HTPASSWD
 fi
 
 
@@ -468,7 +468,7 @@ then
 	NGINX_SITE=etc/nginx-alpine-site-default
 fi
 
-if [ "$DISTRO" == "DEBIAN" || "$DISTRO" == "ARCH" ]
+if [ "$DISTRO" == "DEBIAN" ] || [ "$DISTRO" == "ARCH" ]
 then
 	NGINX_VIRT_DIR="/etc/nginx/sites-available"
 elif [ "$DISTRO" == "ALPINE" ]
@@ -499,31 +499,62 @@ then
 	$ASROOT systemctl enable --now php-fpm
 elif [ "$DISTRO" == "ALPINE" ]
 then
-	$ASROOT sed -i "s/php5/php\/php7/" $NGINX_VIRT_DIR/pikrellcam
+	echo "Setting up Alpine PHP"
+
+	PHP_FPM_USER="$WWW_USER"
+	PHP_FPM_GROUP="$WWW_GROUP"
+	PHP_FPM_LISTEN_MODE="0660"
+	PHP_MEMORY_LIMIT="512M"
+	PHP_MAX_UPLOAD="50M"
+	PHP_MAX_FILE_UPLOAD="200"
+	PHP_MAX_POST="100M"
+	PHP_DISPLAY_ERRORS="On"
+	PHP_DISPLAY_STARTUP_ERRORS="On"
+	PHP_ERROR_REPORTING="E_COMPILE_ERROR\|E_RECOVERABLE_ERROR\|E_ERROR\|E_CORE_ERROR"
+	PHP_CGI_FIX_PATHINFO=0
+
+	$ASROOT sed -i "s|;listen.owner\s*=\s*nobody|listen.owner = ${PHP_FPM_USER}|g" /etc/php7/php-fpm.d/www.conf
+	$ASROOT sed -i "s|;listen.group\s*=\s*nobody|listen.group = ${PHP_FPM_GROUP}|g" /etc/php7/php-fpm.d/www.conf
+	$ASROOT sed -i "s|;listen.mode\s*=\s*0660|listen.mode = ${PHP_FPM_LISTEN_MODE}|g" /etc/php7/php-fpm.d/www.conf
+	$ASROOT sed -i "s|user\s*=\s*nobody|user = ${PHP_FPM_USER}|g" /etc/php7/php-fpm.d/www.conf
+	$ASROOT sed -i "s|group\s*=\s*nobody|group = ${PHP_FPM_GROUP}|g" /etc/php7/php-fpm.d/www.conf
+	$ASROOT sed -i "s|;log_level\s*=\s*notice|log_level = notice|g" /etc/php7/php-fpm.d/www.conf
+
+	$ASROOT sed -i "s|display_errors\s*=\s*Off|display_errors = ${PHP_DISPLAY_ERRORS}|i" /etc/php7/php.ini
+	$ASROOT sed -i "s|display_startup_errors\s*=\s*Off|display_startup_errors = ${PHP_DISPLAY_STARTUP_ERRORS}|i" /etc/php7/php.ini
+	$ASROOT sed -i "s|error_reporting\s*=\s*E_ALL & ~E_DEPRECATED & ~E_STRICT|error_reporting = ${PHP_ERROR_REPORTING}|i" /etc/php7/php.ini
+	$ASROOT sed -i "s|;*memory_limit =.*|memory_limit = ${PHP_MEMORY_LIMIT}|i" /etc/php7/php.ini
+	$ASROOT sed -i "s|;*upload_max_filesize =.*|upload_max_filesize = ${PHP_MAX_UPLOAD}|i" /etc/php7/php.ini
+	$ASROOT sed -i "s|;*max_file_uploads =.*|max_file_uploads = ${PHP_MAX_FILE_UPLOAD}|i" /etc/php7/php.ini
+	$ASROOT sed -i "s|;*post_max_size =.*|post_max_size = ${PHP_MAX_POST}|i" /etc/php7/php.ini
+	$ASROOT sed -i "s|;*cgi.fix_pathinfo=.*|cgi.fix_pathinfo= ${PHP_CGI_FIX_PATHINFO}|i" /etc/php7/php.ini``
+
 	$ASROOT rc-update add php-fpm7 default
 	$ASROOT rc-service php-fpm7 start
 fi
 
 NGINX_SITE=$NGINX_VIRT_DIR/pikrellcam
 
-if [ "$PORT" == "80" ]
+if [ "$DISTRO" == "DEBIAN" ] || [ "$DISTRO" == "ARCH" ]
 then
-	NGINX_LINK=/etc/nginx/sites-enabled/default
-	CURRENT_SITE=`realpath $NGINX_LINK`
-	if [ "$CURRENT_SITE" != "$NGINX_SITE" ]
+	if [ "$PORT" == "80" ]
 	then
-		echo "Changing $NGINX_LINK link to pikrellcam"
-		$ASROOT rm -f $NGINX_LINK
+		NGINX_LINK=/etc/nginx/sites-enabled/default
+		CURRENT_SITE=$(realpath $NGINX_LINK)
+		if [ "$CURRENT_SITE" != "$NGINX_SITE" ]
+		then
+			echo "Changing $NGINX_LINK link to pikrellcam"
+			$ASROOT rm -f $NGINX_LINK
+			$ASROOT ln -s $NGINX_SITE $NGINX_LINK
+		fi
+	else
+		NGINX_LINK=/etc/nginx/sites-enabled/pikrellcam
+	fi
+	if [ ! -h $NGINX_LINK 2>/dev/null ]
+	then
+		echo "Adding $NGINX_LINK link to sites-available/pikrellcam."
 		$ASROOT ln -s $NGINX_SITE $NGINX_LINK
 	fi
-else
-	NGINX_LINK=/etc/nginx/sites-enabled/pikrellcam
-fi
-
-if [ ! -h $NGINX_LINK 2 >/dev/null ]
-then
-	echo "Adding $NGINX_LINK link to sites-available/pikrellcam."
-	$ASROOT ln -s $NGINX_SITE $NGINX_LINK
 fi
 
 if [ ! -f $HTPASSWD ]
@@ -542,7 +573,7 @@ then
 elif [ "$DISTRO" == "ALPINE" ]
 then
 	$ASROOT rc-update add nginx default
-	$ASROOT rc-service nginx start
+	$ASROOT rc-service nginx restart
 fi
 
 # =============== Setup FIFO  ===============
@@ -551,11 +582,11 @@ fifo=$PWD/www/FIFO
 
 if [ ! -p "$fifo" ]
 then
-	rm -f $fifo
-	mkfifo $fifo
+	rm -f "$fifo"
+	mkfifo "$fifo"
 fi
-$ASROOT chown $USER.$WWW_GROUP $fifo
-$ASROOT chmod 664 $fifo
+$ASROOT chown "$USER"."$WWW_GROUP" "$fifo"
+$ASROOT chmod 664 "$fifo"
 
 
 
@@ -566,13 +597,13 @@ then
 	mkdir scripts
 fi
 
-cd scripts-dist
+cd scripts-dist || exit
 
 for script in *
 do
-	if [ ! -f ../scripts/$script ] && [ "${script:0:1}" != "_" ]
+	if [ ! -f ../scripts/"$script" ] && [ "${script:0:1}" != "_" ]
 	then
-		cp $script ../scripts 
+		cp "$script" ../scripts
 	fi
 done
 
